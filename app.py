@@ -206,20 +206,24 @@ API_URL = "http://127.0.0.1:5000/predict"
 # FUNCTIONS
 # ============================================================
 
+
 def load_data(filename):
+    paths = [
+        filename,
+        os.path.join("data", filename)
+    ]
+  
 
-    path = os.path.join("data", filename)
+    for path in paths:
+        if os.path.exists(path):
+            try:
+                return pd.read_csv(path)
+            except Exception as e:
+                st.warning(f"Could not read {filename}: {e}")
 
-    if os.path.exists(path):
-
-        try:
-            return pd.read_csv(path)
-
-        except Exception:
-
-            return pd.DataFrame()
-
+    st.warning(f"File not found: {filename}")
     return pd.DataFrame()
+
 
 
 def find_column(df, names):
