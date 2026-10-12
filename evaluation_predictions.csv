@@ -1,0 +1,16 @@
+review,actual_sentiment,predicted_sentiment
+This product is excellent and amazing,Positive,Positive
+The battery life is very good,Positive,Positive
+I love this product,Positive,Positive
+The camera quality is great,Positive,Positive
+The product is terrible,Negative,Negative
+Battery performance is very poor,Negative,Negative
+I hate this product,Negative,Negative
+The delivery was very bad,Negative,Negative
+The product is okay,Neutral,Positive
+The quality is average,Neutral,Negative
+The product is good,Positive,Positive
+The camera is excellent,Positive,Positive
+The battery is awful,Negative,Negative
+Very disappointed with this product,Negative,Negative
+It is an average product,Neutral,Negative
