@@ -8,7 +8,17 @@ from textblob import TextBlob
 from src.multilingual import translate_tamil_to_english
 from src.sarcasm import detect_sarcasm
 
+
+# =========================================================
+# FLASK APP
+# =========================================================
+
 app = Flask(__name__)
+
+
+# =========================================================
+# NLTK SETUP
+# =========================================================
 
 try:
     nltk.data.find("tokenizers/punkt")
@@ -32,6 +42,15 @@ except LookupError:
 
 
 lemmatizer = WordNetLemmatizer()
+
+
+# =========================================================
+# OPTIONAL SPACY
+# =========================================================
+# IMPORTANT:
+# spaCy is NOT imported at the top.
+# If Torch/spaCy has a DLL problem, the API will still work.
+# =========================================================
 
 nlp = None
 spacy_status = "Not loaded"
@@ -67,6 +86,11 @@ def load_spacy():
         )
 
         return None
+
+
+# =========================================================
+# ASPECT KEYWORDS
+# =========================================================
 
 aspect_keywords = {
 
@@ -142,6 +166,12 @@ aspect_keywords = {
         "seller"
     ]
 }
+
+
+# =========================================================
+# EMOTION KEYWORDS
+# =========================================================
+
 emotion_keywords = {
 
     "Joy": [
@@ -158,6 +188,7 @@ emotion_keywords = {
         "joy",
         "like"
     ],
+
     "Sadness": [
         "sad",
         "unhappy",
@@ -221,12 +252,21 @@ emotion_keywords = {
     ]
 }
 
+
+# =========================================================
+# TEXT CLEANING
+# =========================================================
+
 def clean_text(text):
 
     if text is None:
         return ""
 
     text = str(text)
+
+    # -----------------------------------------
+    # Tamil -> English
+    # -----------------------------------------
 
     try:
 
@@ -238,7 +278,17 @@ def clean_text(text):
 
         pass
 
+
+    # -----------------------------------------
+    # Lowercase
+    # -----------------------------------------
+
     text = text.lower()
+
+
+    # -----------------------------------------
+    # Remove URLs
+    # -----------------------------------------
 
     text = re.sub(
         r"http\S+|www\S+",
@@ -246,11 +296,21 @@ def clean_text(text):
         text
     )
 
+
+    # -----------------------------------------
+    # Remove special characters
+    # -----------------------------------------
+
     text = re.sub(
         r"[^a-zA-Z0-9\s]",
         " ",
         text
     )
+
+
+    # -----------------------------------------
+    # Remove extra spaces
+    # -----------------------------------------
 
     text = re.sub(
         r"\s+",

@@ -1357,364 +1357,201 @@ if page == "📊 Dashboard":
 
 
 # ============================================================
-# LIVE REVIEW ANALYZER
+# LIVE REVIEW ANALYZER - LINE BY LINE WORKFLOW
 # ============================================================
 
 elif page == "🔍 Live Review Analyzer":
 
     st.markdown(
-        '<div class="dashboard-title">'
-        '🔍 Live Review Analyzer'
-        '</div>',
+        '<div class="dashboard-title">🔍 Live Review Analyzer</div>',
         unsafe_allow_html=True
     )
 
     st.markdown(
         '<div class="dashboard-subtitle">'
-        'Real-time customer review analysis'
+        'Customer Review Processing - Step by Step'
         '</div>',
         unsafe_allow_html=True
     )
 
-
     review = st.text_area(
         "Enter Customer Review",
-        height=150,
-        placeholder=(
-            "Example: I love this product! "
-            "The battery is amazing."
-        )
+        height=130,
+        placeholder="Example: I love this product! The battery is amazing.",
+        key="live_review_input"
     )
 
-
-    if st.button(
-        "🔎 Analyze Review",
+    analyze = st.button(
+        "🚀 Start Analysis",
         type="primary",
         use_container_width=True
-    ):
+    )
+
+    if analyze:
 
         if not review.strip():
-
-            st.warning(
-                "Please enter a review."
-            )
+            st.warning("Please enter a customer review.")
 
         else:
 
             try:
 
-                response = requests.post(
-                    API_URL,
-                    json={
-                        "review": review
-                    },
-                    timeout=30
-                )
+                with st.spinner("Processing your review..."):
 
+                    response = requests.post(
+                        API_URL,
+                        json={"review": review},
+                        timeout=30
+                    )
 
-                if response.status_code == 200:
+                if response.status_code != 200:
+                    st.error(f"API Error: {response.status_code}")
+
+                else:
 
                     result = response.json()
 
+                    st.markdown("---")
 
-                    # ------------------------------------------------
-                    # ORIGINAL REVIEW
-                    # ------------------------------------------------
+                    # STEP 1: ORIGINAL REVIEW
+                    st.markdown("## 1️⃣ Original Review")
+                    st.info(result.get("review", review))
 
-                    st.markdown(
-                        '<div class="section-title">'
-                        '📝 Original Review'
-                        '</div>',
-                        unsafe_allow_html=True
+                    st.markdown("⬇️")
+
+                    # STEP 2: CLEANED TEXT
+                    st.markdown("## 2️⃣ Cleaned Text")
+
+                    cleaned = result.get(
+                        "cleaned_review",
+                        result.get("processed_review", "")
                     )
 
-                    st.info(
-                        result.get(
-                            "review",
-                            review
-                        )
-                    )
+                    st.code(cleaned or "No cleaned text available.")
 
+                    st.markdown("⬇️")
 
-                    # ------------------------------------------------
-                    # PROCESSING
-                    # ------------------------------------------------
+                    # STEP 3: TOKENIZATION
+                    st.markdown("## 3️⃣ Tokenization")
 
-                    with st.expander(
-                        "🔄 View Text Processing"
-                    ):
+                    tokens = result.get("tokens", [])
 
-                        c1, c2 = st.columns(2)
+                    st.write(tokens)
 
+                    st.caption(f"Total tokens: {len(tokens)}")
 
-                        with c1:
+                    st.markdown("⬇️")
 
-                            st.markdown(
-                                "**Cleaned Text**"
-                            )
+                    # STEP 4: NLTK LEMMATIZATION
+                    st.markdown("## 4️⃣ NLTK Lemmatization")
 
-                            st.code(
-                                result.get(
-                                    "cleaned_review",
-                                    ""
-                                )
-                            )
+                    lemmas = result.get("lemmatized", [])
 
+                    st.write(lemmas)
 
-                            st.markdown(
-                                "**Tokens**"
-                            )
+                    st.markdown("⬇️")
 
-                            st.write(
-                                result.get(
-                                    "tokens",
-                                    []
-                                )
-                            )
+                    # STEP 5: SPACY TOKENS
+                    st.markdown("## 5️⃣ spaCy Tokenization")
 
+                    spacy_tokens = result.get("spacy_tokens", [])
 
-                        with c2:
-
-                            st.markdown(
-                                "**NLTK Lemmatized**"
-                            )
-
-                            st.write(
-                                result.get(
-                                    "lemmatized",
-                                    []
-                                )
-                            )
-
-
-                            st.markdown(
-                                "**spaCy Tokens**"
-                            )
-
-                            spacy_tokens = result.get(
-                                "spacy_tokens",
-                                []
-                            )
-
-
-                            if spacy_tokens:
-
-                                st.write(
-                                    spacy_tokens
-                                )
-
-                            else:
-
-                                st.warning(
-                                    result.get(
-                                        "spacy_status",
-                                        "spaCy unavailable"
-                                    )
-                                )
-
-
-                    # ------------------------------------------------
-                    # ANALYSIS
-                    # ------------------------------------------------
-
-                    st.markdown(
-                        '<div class="section-title">'
-                        '📊 Analysis Result'
-                        '</div>',
-                        unsafe_allow_html=True
-                    )
-
-
-                    sentiment = result.get(
-                        "sentiment",
-                        "Unknown"
-                    )
-
-                    polarity = result.get(
-                        "polarity",
-                        0
-                    )
-
-                    aspects = result.get(
-                        "aspects",
-                        []
-                    )
-
-                    emotion = result.get(
-                        "emotion",
-                        "Unknown"
-                    )
-
-
-                    if isinstance(
-                        aspects,
-                        list
-                    ):
-
-                        aspect_text = (
-                            ", ".join(aspects)
-                            if aspects
-                            else "No Aspect"
-                        )
-
+                    if spacy_tokens:
+                        st.write(spacy_tokens)
                     else:
-
-                        aspect_text = str(
-                            aspects
+                        st.warning(
+                            result.get(
+                                "spacy_status",
+                                "spaCy tokens unavailable."
+                            )
                         )
 
+                    st.markdown("⬇️")
 
-                    r1, r2, r3, r4 = st.columns(4)
+                    # STEP 6: SENTIMENT
+                    st.markdown("## 6️⃣ Sentiment Analysis")
 
+                    sentiment = result.get("sentiment", "Unknown")
+                    polarity = result.get("polarity", 0)
 
-                    with r1:
+                    c1, c2 = st.columns(2)
 
-                        st.markdown(
-                            f"""
-                            <div class="result-card">
-                                <div class="result-label">
-                                    Sentiment
-                                </div>
-                                <div class="result-value"
-                                style="color:{sentiment_colour(sentiment)};">
-                                    {sentiment}
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
+                    with c1:
+                        st.metric("Sentiment", sentiment)
+
+                    with c2:
+                        st.metric(
+                            "Polarity Score",
+                            f"{float(polarity):.3f}"
                         )
 
+                    st.markdown("⬇️")
 
-                    with r2:
+                    # STEP 7: ASPECT
+                    st.markdown("## 7️⃣ Aspect Detection")
 
-                        st.markdown(
-                            f"""
-                            <div class="result-card">
-                                <div class="result-label">
-                                    Polarity
-                                </div>
-                                <div class="result-value">
-                                    {float(polarity):.3f}
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                    aspects = result.get("aspects", [])
 
+                    if isinstance(aspects, list):
+                        if aspects:
+                            for aspect in aspects:
+                                st.success(f"🎯 {aspect}")
+                        else:
+                            st.info("No aspect detected.")
+                    else:
+                        st.write(aspects)
 
-                    with r3:
+                    st.markdown("⬇️")
 
-                        st.markdown(
-                            f"""
-                            <div class="result-card">
-                                <div class="result-label">
-                                    Aspect
-                                </div>
-                                <div class="result-value">
-                                    {aspect_text}
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                    # STEP 8: EMOTION
+                    st.markdown("## 8️⃣ Emotion Analysis")
 
+                    emotion = result.get("emotion", "Unknown")
 
-                    with r4:
+                    st.info(f"😊 Detected Emotion: {emotion}")
 
-                        st.markdown(
-                            f"""
-                            <div class="result-card">
-                                <div class="result-label">
-                                    Emotion
-                                </div>
-                                <div class="result-value">
-                                    {emotion}
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                    st.markdown("⬇️")
 
+                    # STEP 9: SARCASM
+                    st.markdown("## 9️⃣ Sarcasm Detection")
 
-                    # ------------------------------------------------
-                    # SARCASM
-                    # ------------------------------------------------
-
-                    st.markdown(
-                        '<div class="section-title">'
-                        '🎭 Sarcasm Analysis'
-                        '</div>',
-                        unsafe_allow_html=True
-                    )
-
-
-                    sarcasm = result.get(
-                        "sarcasm",
-                        False
-                    )
+                    sarcasm = result.get("sarcasm", False)
 
                     confidence = result.get(
                         "sarcasm_confidence",
                         0
                     )
 
-                    score = result.get(
-                        "sarcasm_score",
-                        0
-                    )
-
+                    score = result.get("sarcasm_score", 0)
 
                     s1, s2, s3 = st.columns(3)
 
-
                     with s1:
-
                         st.metric(
-                            "Detected",
+                            "Sarcasm",
                             "Yes" if sarcasm else "No"
                         )
 
-
                     with s2:
-
-                        st.metric(
-                            "Confidence",
-                            confidence
-                        )
-
+                        st.metric("Confidence", confidence)
 
                     with s3:
+                        st.metric("Score", score)
 
-                        st.metric(
-                            "Score",
-                            score
-                        )
+                    st.markdown("---")
 
-
-                else:
-
-                    st.error(
-                        f"API Error: {response.status_code}"
-                    )
-
+                    st.success("✅ All processing steps completed!")
 
             except requests.exceptions.ConnectionError:
 
                 st.error(
-                    "Flask API is not running."
+                    "Flask API is not running. "
+                    "Open another terminal and run: py api.py"
                 )
-
-                st.info(
-                    "Run this in another terminal: python api.py"
-                )
-
 
             except Exception as e:
 
-                st.error(
-                    f"Error: {e}"
-                )
-
+                st.error(f"Error: {e}")
 
 # ============================================================
 # REPORTS
