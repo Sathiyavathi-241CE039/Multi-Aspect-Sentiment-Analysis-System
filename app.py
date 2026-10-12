@@ -1403,18 +1403,58 @@ elif page == "🔍 Live Review Analyzer":
 
                 with st.spinner("Processing your review..."):
 
-                    response = requests.post(
-                        API_URL,
-                        json={"review": review},
-                        timeout=30
-                    )
+                    
+with st.spinner("Processing your review..."):
 
-                if response.status_code != 200:
-                    st.error(f"API Error: {response.status_code}")
+    # Step 1: Translate Tamil review if possible
+    try:
+        processed_review = api.translate_tamil_to_english(review)
+    except Exception:
+        processed_review = review
 
-                else:
+    # Step 2: Preprocessing
+    preprocessing = api.preprocess_review(processed_review)
 
-                    result = response.json()
+    cleaned_review = preprocessing["cleaned_text"]
+
+    # Step 3: Sentiment analysis
+    sentiment_result = api.analyze_sentiment(cleaned_review)
+
+    # Step 4: Aspect detection
+    aspects = api.extract_aspects(cleaned_review)
+
+    # Step 5: Emotion detection
+    emotion = api.detect_emotion_custom(cleaned_review)
+
+    # Step 6: Sarcasm detection
+    try:
+        sarcasm_result = api.detect_sarcasm(cleaned_review)
+    except Exception:
+        sarcasm_result = {
+            "sarcasm": False,
+            "confidence": 0.0,
+            "score": 0,
+            "indicators": []
+        }
+
+    # Keep the same result structure used by the existing UI
+    result = {
+        "review": review,
+        "processed_review": processed_review,
+        "cleaned_review": cleaned_review,
+        "tokens": preprocessing["tokens"],
+        "lemmatized": preprocessing["lemmatized"],
+        "spacy_tokens": preprocessing["spacy_tokens"],
+        "spacy_status": api.spacy_status,
+        "sentiment": sentiment_result["sentiment"],
+        "polarity": sentiment_result["polarity"],
+        "aspects": aspects,
+        "emotion": emotion,
+        "sarcasm": sarcasm_result.get("sarcasm", False),
+        "sarcasm_confidence": sarcasm_result.get("confidence", 0.0),
+        "sarcasm_score": sarcasm_result.get("score", 0),
+        "sarcasm_indicators": sarcasm_result.get("indicators", [])
+    }
 
                     st.markdown("---")
 
