@@ -1,85 +1,79 @@
+
 import re
 import nltk
-import spacy
-
 from nltk.stem import WordNetLemmatizer
 
-# Load spaCy model
-nlp = spacy.load("en_core_web_sm")
-
-# NLTK lemmatizer
+# NLTK setup
 lemmatizer = WordNetLemmatizer()
 
 
 def preprocess_review(text):
+    original_text = str(text or "")
 
-    # -----------------------------
-    # 1. Original Text
-    # -----------------------------
-    original_text = str(text)
-
-    # -----------------------------
-    # 2. Lowercase
-    # -----------------------------
+    # 1. Convert text to lowercase
     cleaned_text = original_text.lower()
 
-    # -----------------------------
-    # 3. Remove URLs
-    # -----------------------------
+    # 2. Remove URLs
     cleaned_text = re.sub(
         r"http\S+|www\S+",
         "",
         cleaned_text
     )
 
-    # -----------------------------
-    # 4. Remove special characters
-    # -----------------------------
+    # 3. Remove special characters
     cleaned_text = re.sub(
         r"[^a-zA-Z\s]",
         " ",
         cleaned_text
     )
 
-    # -----------------------------
-    # 5. Remove extra spaces
-    # -----------------------------
+    # 4. Remove extra spaces
     cleaned_text = re.sub(
         r"\s+",
         " ",
         cleaned_text
     ).strip()
 
-    # -----------------------------
-    # 6. Tokens
-    # -----------------------------
-    tokens = nltk.word_tokenize(cleaned_text)
+    # 5. Tokenization
+    try:
+        tokens = nltk.word_tokenize(cleaned_text)
+    except LookupError:
+        nltk.download("punkt", quiet=True)
+        nltk.download("punkt_tab", quiet=True)
+        tokens = nltk.word_tokenize(cleaned_text)
 
-    # -----------------------------
-    # 7. NLTK Lemmatization
-    # -----------------------------
-    lemmatized = [
-        lemmatizer.lemmatize(word)
-        for word in tokens
-    ]
+    # 6. Lemmatization
+    try:
+        lemmatized = [
+            lemmatizer.lemmatize(word)
+            for word in tokens
+        ]
+    except LookupError:
+        nltk.download("wordnet", quiet=True)
+        lemmatized = [
+            lemmatizer.lemmatize(word)
+            for word in tokens
+        ]
 
-    # -----------------------------
-    # 8. spaCy Processing
-    # -----------------------------
-    doc = nlp(original_text)
+    # 7. Optional spaCy processing
+    spacy_tokens = []
+    spacy_status = "Unavailable"
 
-    spacy_tokens = [
-        token.text
-        for token in doc
-    ]
+    try:
+        import spacy
+        nlp = spacy.load("en_core_web_sm")
+        doc = nlp(original_text)
+        spacy_tokens = [token.text for token in doc]
+        spacy_status = "Available"
+    except Exception:
+        spacy_status = "Model unavailable or spaCy error"
 
-    # -----------------------------
-    # Return all results
-    # -----------------------------
+    # 8. Return results
     return {
         "original_text": original_text,
         "cleaned_text": cleaned_text,
         "tokens": tokens,
         "lemmatized": lemmatized,
-        "spacy_tokens": spacy_tokens
+        "spacy_tokens": spacy_tokens,
+        "spacy_status": spacy_status
     }
