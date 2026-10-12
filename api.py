@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import re
-from src.multilingual import translate_tamil_to_english
+
 import nltk
 from nltk.stem import WordNetLemmatizer
 from textblob import TextBlob

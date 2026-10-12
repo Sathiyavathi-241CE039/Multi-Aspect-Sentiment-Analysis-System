@@ -4,7 +4,6 @@ import requests
 import os
 import plotly.express as px
 import plotly.graph_objects as go
-import api
 
 
 # ============================================================
@@ -207,24 +206,20 @@ API_URL = "http://127.0.0.1:5000/predict"
 # FUNCTIONS
 # ============================================================
 
-
 def load_data(filename):
-    paths = [
-        filename,
-        os.path.join("data", filename)
-    ]
-  
 
-    for path in paths:
-        if os.path.exists(path):
-            try:
-                return pd.read_csv(path)
-            except Exception as e:
-                st.warning(f"Could not read {filename}: {e}")
+    path = os.path.join("data", filename)
 
-    st.warning(f"File not found: {filename}")
+    if os.path.exists(path):
+
+        try:
+            return pd.read_csv(path)
+
+        except Exception:
+
+            return pd.DataFrame()
+
     return pd.DataFrame()
-
 
 
 def find_column(df, names):
@@ -1359,6 +1354,8 @@ if page == "📊 Dashboard":
         '</div>',
         unsafe_allow_html=True
     )
+
+
 # ============================================================
 # LIVE REVIEW ANALYZER - LINE BY LINE WORKFLOW
 # ============================================================
@@ -1396,204 +1393,165 @@ elif page == "🔍 Live Review Analyzer":
             st.warning("Please enter a customer review.")
 
         else:
+
             try:
+
                 with st.spinner("Processing your review..."):
 
-                    # Step 1: Translate review
-                    try:
-                        processed_review = api.translate_tamil_to_english(
-                            review
-                        )
-                        if not processed_review:
-                            processed_review = review
-                    except Exception:
-                        processed_review = review
-
-                    # Step 2: Preprocessing
-                    preprocessing = api.preprocess_review(
-                        processed_review
+                    response = requests.post(
+                        API_URL,
+                        json={"review": review},
+                        timeout=30
                     )
 
-                    cleaned_review = (
-                        preprocessing.get("cleaned_text")
-                        or preprocessing.get("cleaned_review")
-                        or processed_review
-                    )
+                if response.status_code != 200:
+                    st.error(f"API Error: {response.status_code}")
 
-                    # Step 3: Sentiment analysis
-                    sentiment_result = api.analyze_sentiment(
-                        cleaned_review
-                    )
-
-                    # Step 4: Aspect detection
-                    aspects = api.extract_aspects(cleaned_review)
-
-                    # Step 5: Emotion detection
-                    emotion = api.detect_emotion_custom(
-                        cleaned_review
-                    )
-
-                    # Step 6: Sarcasm detection
-                    try:
-                        sarcasm_result = api.detect_sarcasm(
-                            cleaned_review
-                        )
-                    except Exception:
-                        sarcasm_result = {
-                            "sarcasm": False,
-                            "confidence": 0.0,
-                            "score": 0,
-                            "indicators": []
-                        }
-
-                    # Prepare result for display
-                    result = {
-                        "review": review,
-                        "processed_review": processed_review,
-                        "cleaned_review": cleaned_review,
-                        "tokens": preprocessing.get("tokens", []),
-                        "lemmatized": preprocessing.get(
-                            "lemmatized", []
-                        ),
-                        "spacy_tokens": preprocessing.get(
-                            "spacy_tokens", []
-                        ),
-                        "spacy_status": getattr(
-                            api,
-                            "spacy_status",
-                            "spaCy status unavailable."
-                        ),
-                        "sentiment": sentiment_result.get(
-                            "sentiment", "Unknown"
-                        ),
-                        "polarity": sentiment_result.get(
-                            "polarity", 0
-                        ),
-                        "aspects": aspects,
-                        "emotion": emotion,
-                        "sarcasm": sarcasm_result.get(
-                            "sarcasm", False
-                        ),
-                        "sarcasm_confidence": sarcasm_result.get(
-                            "confidence", 0.0
-                        ),
-                        "sarcasm_score": sarcasm_result.get(
-                            "score", 0
-                        ),
-                        "sarcasm_indicators": sarcasm_result.get(
-                            "indicators", []
-                        )
-                    }
-
-                # STEP 1: ORIGINAL REVIEW
-                st.markdown("---")
-                st.markdown("## 1️⃣ Original Review")
-                st.info(result["review"])
-
-                st.markdown("⬇️")
-
-                # STEP 2: CLEANED TEXT
-                st.markdown("## 2️⃣ Cleaned Text")
-                st.code(
-                    result["cleaned_review"]
-                    or "No cleaned text available."
-                )
-
-                st.markdown("⬇️")
-
-                # STEP 3: TOKENIZATION
-                st.markdown("## 3️⃣ Tokenization")
-                tokens = result["tokens"]
-                st.write(tokens)
-                st.caption(f"Total tokens: {len(tokens)}")
-
-                st.markdown("⬇️")
-
-                # STEP 4: LEMMATIZATION
-                st.markdown("## 4️⃣ NLTK Lemmatization")
-                st.write(result["lemmatized"])
-
-                st.markdown("⬇️")
-
-                # STEP 5: SPACY TOKENIZATION
-                st.markdown("## 5️⃣ spaCy Tokenization")
-
-                if result["spacy_tokens"]:
-                    st.write(result["spacy_tokens"])
                 else:
-                    st.warning(result["spacy_status"])
 
-                st.markdown("⬇️")
+                    result = response.json()
 
-                # STEP 6: SENTIMENT
-                st.markdown("## 6️⃣ Sentiment Analysis")
+                    st.markdown("---")
 
-                c1, c2 = st.columns(2)
+                    # STEP 1: ORIGINAL REVIEW
+                    st.markdown("## 1️⃣ Original Review")
+                    st.info(result.get("review", review))
 
-                with c1:
-                    st.metric(
-                        "Sentiment",
-                        result["sentiment"]
+                    st.markdown("⬇️")
+
+                    # STEP 2: CLEANED TEXT
+                    st.markdown("## 2️⃣ Cleaned Text")
+
+                    cleaned = result.get(
+                        "cleaned_review",
+                        result.get("processed_review", "")
                     )
 
-                with c2:
-                    st.metric(
-                        "Polarity Score",
-                        f"{float(result['polarity']):.3f}"
-                    )
+                    st.code(cleaned or "No cleaned text available.")
 
-                st.markdown("⬇️")
+                    st.markdown("⬇️")
 
-                # STEP 7: ASPECT DETECTION
-                st.markdown("## 7️⃣ Aspect Detection")
+                    # STEP 3: TOKENIZATION
+                    st.markdown("## 3️⃣ Tokenization")
 
-                if isinstance(result["aspects"], list):
-                    if result["aspects"]:
-                        for aspect in result["aspects"]:
-                            st.success(f"🎯 {aspect}")
+                    tokens = result.get("tokens", [])
+
+                    st.write(tokens)
+
+                    st.caption(f"Total tokens: {len(tokens)}")
+
+                    st.markdown("⬇️")
+
+                    # STEP 4: NLTK LEMMATIZATION
+                    st.markdown("## 4️⃣ NLTK Lemmatization")
+
+                    lemmas = result.get("lemmatized", [])
+
+                    st.write(lemmas)
+
+                    st.markdown("⬇️")
+
+                    # STEP 5: SPACY TOKENS
+                    st.markdown("## 5️⃣ spaCy Tokenization")
+
+                    spacy_tokens = result.get("spacy_tokens", [])
+
+                    if spacy_tokens:
+                        st.write(spacy_tokens)
                     else:
-                        st.info("No aspect detected.")
-                else:
-                    st.write(result["aspects"])
+                        st.warning(
+                            result.get(
+                                "spacy_status",
+                                "spaCy tokens unavailable."
+                            )
+                        )
 
-                st.markdown("⬇️")
+                    st.markdown("⬇️")
 
-                # STEP 8: EMOTION
-                st.markdown("## 8️⃣ Emotion Analysis")
-                st.info(
-                    f"😊 Detected Emotion: {result['emotion']}"
+                    # STEP 6: SENTIMENT
+                    st.markdown("## 6️⃣ Sentiment Analysis")
+
+                    sentiment = result.get("sentiment", "Unknown")
+                    polarity = result.get("polarity", 0)
+
+                    c1, c2 = st.columns(2)
+
+                    with c1:
+                        st.metric("Sentiment", sentiment)
+
+                    with c2:
+                        st.metric(
+                            "Polarity Score",
+                            f"{float(polarity):.3f}"
+                        )
+
+                    st.markdown("⬇️")
+
+                    # STEP 7: ASPECT
+                    st.markdown("## 7️⃣ Aspect Detection")
+
+                    aspects = result.get("aspects", [])
+
+                    if isinstance(aspects, list):
+                        if aspects:
+                            for aspect in aspects:
+                                st.success(f"🎯 {aspect}")
+                        else:
+                            st.info("No aspect detected.")
+                    else:
+                        st.write(aspects)
+
+                    st.markdown("⬇️")
+
+                    # STEP 8: EMOTION
+                    st.markdown("## 8️⃣ Emotion Analysis")
+
+                    emotion = result.get("emotion", "Unknown")
+
+                    st.info(f"😊 Detected Emotion: {emotion}")
+
+                    st.markdown("⬇️")
+
+                    # STEP 9: SARCASM
+                    st.markdown("## 9️⃣ Sarcasm Detection")
+
+                    sarcasm = result.get("sarcasm", False)
+
+                    confidence = result.get(
+                        "sarcasm_confidence",
+                        0
+                    )
+
+                    score = result.get("sarcasm_score", 0)
+
+                    s1, s2, s3 = st.columns(3)
+
+                    with s1:
+                        st.metric(
+                            "Sarcasm",
+                            "Yes" if sarcasm else "No"
+                        )
+
+                    with s2:
+                        st.metric("Confidence", confidence)
+
+                    with s3:
+                        st.metric("Score", score)
+
+                    st.markdown("---")
+
+                    st.success("✅ All processing steps completed!")
+
+            except requests.exceptions.ConnectionError:
+
+                st.error(
+                    "Flask API is not running. "
+                    "Open another terminal and run: py api.py"
                 )
-
-                st.markdown("⬇️")
-
-                # STEP 9: SARCASM
-                st.markdown("## 9️⃣ Sarcasm Detection")
-
-                s1, s2, s3 = st.columns(3)
-
-                with s1:
-                    st.metric(
-                        "Sarcasm",
-                        "Yes" if result["sarcasm"] else "No"
-                    )
-
-                with s2:
-                    st.metric(
-                        "Confidence",
-                        result["sarcasm_confidence"]
-                    )
-
-                with s3:
-                    st.metric(
-                        "Score",
-                        result["sarcasm_score"]
-                    )
-
-                st.markdown("---")
-                st.success("✅ All processing steps completed!")
 
             except Exception as e:
-                st.error(f"Error while analyzing the review: {e}")
+
+                st.error(f"Error: {e}")
 
 # ============================================================
 # REPORTS
